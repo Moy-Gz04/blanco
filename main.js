@@ -28,10 +28,11 @@ animate();
 
 function init() {
   scene = new THREE.Scene();
-  const loader = new THREE.TextureLoader();
-  loader.load('./img/forest.jpg', texture => {
-    scene.background = texture;
-  });
+  scene.background = new THREE.CubeTextureLoader().load([
+    './img/space_px.jpg', './img/space_nx.jpg',
+    './img/space_py.jpg', './img/space_ny.jpg',
+    './img/space_pz.jpg', './img/space_nz.jpg'
+  ]);
 
   camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.1, 1000);
   camera.position.set(0, 1.6, 3);
@@ -47,6 +48,7 @@ function init() {
   light.position.set(0, 1, 0);
   scene.add(light);
 
+  const loader = new THREE.TextureLoader();
   const waterTexture = loader.load('./img/water.jpg');
   waterTexture.wrapS = waterTexture.wrapT = THREE.RepeatWrapping;
   waterTexture.repeat.set(4, 4);
@@ -162,15 +164,6 @@ function createArrow() {
   tip.position.y = 0.5;
   arrowGroup.add(tip);
 
-  const featherGeo = new THREE.PlaneGeometry(0.1, 0.05);
-  const featherMat = new THREE.MeshStandardMaterial({ color: 0xff0000, side: THREE.DoubleSide });
-  for (let i = 0; i < 3; i++) {
-    const feather = new THREE.Mesh(featherGeo, featherMat);
-    feather.position.set(0, 0, -0.02 + i * 0.02);
-    feather.rotation.y = Math.PI / 2;
-    arrowGroup.add(feather);
-  }
-
   return arrowGroup;
 }
 
@@ -185,9 +178,8 @@ function onSelectStart() {
   const position = new THREE.Vector3().setFromMatrixPosition(controller.matrixWorld);
 
   arrow.position.copy(position);
-  const velocity = direction.clone().multiplyScalar(3);
-  arrow.userData.velocity = velocity;
-  arrow.lookAt(position.clone().add(velocity));
+  arrow.userData.velocity = direction.clone().multiplyScalar(5);
+  arrow.lookAt(position.clone().add(direction));
 
   if (soundBuffer) {
     const sound = new THREE.PositionalAudio(listener);
