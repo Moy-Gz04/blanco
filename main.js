@@ -27,7 +27,10 @@ animate();
 
 function init() {
   scene = new THREE.Scene();
-  scene.background = new THREE.Color(0x222222);
+  const loader = new THREE.TextureLoader();
+  loader.load('https://threejs.org/examples/textures/forest.jpg', texture => {
+    scene.background = texture;
+  });
 
   camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.1, 1000);
   camera.position.set(0, 1.6, 3);
@@ -49,6 +52,24 @@ function init() {
   );
   floor.rotation.x = -Math.PI / 2;
   scene.add(floor);
+
+  // Agregar árboles alrededor
+  const treeGeometry = new THREE.CylinderGeometry(0.05, 0.05, 1.5);
+  const leafGeometry = new THREE.ConeGeometry(0.3, 1, 8);
+  const trunkMaterial = new THREE.MeshStandardMaterial({ color: 0x8B4513 });
+  const leafMaterial = new THREE.MeshStandardMaterial({ color: 0x228B22 });
+
+  for (let i = 0; i < 10; i++) {
+    const trunk = new THREE.Mesh(treeGeometry, trunkMaterial);
+    const leaves = new THREE.Mesh(leafGeometry, leafMaterial);
+    const tree = new THREE.Group();
+    trunk.position.y = 0.75;
+    leaves.position.y = 1.5;
+    tree.add(trunk);
+    tree.add(leaves);
+    tree.position.set((Math.random() - 0.5) * 10, 0, (Math.random() - 0.5) * 10);
+    scene.add(tree);
+  }
 
   controller = renderer.xr.getController(0);
   controller.addEventListener("selectstart", onSelectStart);
@@ -116,7 +137,9 @@ function updateHUD() {
 
 function spawnTarget() {
   const geometry = new THREE.CircleGeometry(0.4, 32);
-  const material = new THREE.MeshStandardMaterial({ color: new THREE.Color(`hsl(${Math.random() * 360}, 100%, 50%)`), side: THREE.DoubleSide });
+  const textureLoader = new THREE.TextureLoader();
+  const texture = textureLoader.load('https://i.imgur.com/Oz4Fvvv.png'); // Diana
+  const material = new THREE.MeshStandardMaterial({ map: texture, side: THREE.DoubleSide });
   const target = new THREE.Mesh(geometry, material);
   target.position.set((Math.random() - 0.5) * 4, 1 + Math.random() * 2, -4);
   target.rotation.y = Math.PI;
@@ -129,6 +152,7 @@ function spawnTarget() {
 
 function createArrow() {
   const arrowGroup = new THREE.Group();
+
   const shaft = new THREE.Mesh(
     new THREE.CylinderGeometry(0.01, 0.01, 0.5, 8),
     new THREE.MeshStandardMaterial({ color: 0xaaaaaa })
@@ -142,6 +166,16 @@ function createArrow() {
   );
   tip.position.y = 0.5;
   arrowGroup.add(tip);
+
+  // Plumas traseras
+  const featherGeo = new THREE.PlaneGeometry(0.1, 0.05);
+  const featherMat = new THREE.MeshStandardMaterial({ color: 0xff0000, side: THREE.DoubleSide });
+  for (let i = 0; i < 3; i++) {
+    const feather = new THREE.Mesh(featherGeo, featherMat);
+    feather.position.set(0, 0, -0.02 + i * 0.02);
+    feather.rotation.y = Math.PI / 2;
+    arrowGroup.add(feather);
+  }
 
   return arrowGroup;
 }
