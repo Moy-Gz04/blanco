@@ -28,7 +28,7 @@ animate();
 function init() {
   scene = new THREE.Scene();
   const loader = new THREE.TextureLoader();
-  loader.load('https://threejs.org/examples/textures/forest.jpg', texture => {
+  loader.load('./img/forest.jpg', texture => {
     scene.background = texture;
   });
 
@@ -46,11 +46,16 @@ function init() {
   light.position.set(0, 1, 0);
   scene.add(light);
 
+  const waterTexture = loader.load('./img/water.jpg');
+  waterTexture.wrapS = waterTexture.wrapT = THREE.RepeatWrapping;
+  waterTexture.repeat.set(4, 4);
+
   const floor = new THREE.Mesh(
     new THREE.PlaneGeometry(10, 10),
-    new THREE.MeshStandardMaterial({ color: 0x444444 })
+    new THREE.MeshStandardMaterial({ map: waterTexture })
   );
   floor.rotation.x = -Math.PI / 2;
+  floor.name = 'floor';
   scene.add(floor);
 
   // Árboles eliminados para dejar vista despejada a los blancos
@@ -120,15 +125,17 @@ function updateHUD() {
 }
 
 function spawnTarget() {
-  const geometry = new THREE.CircleGeometry(0.4, 32);
+  const geometry = new THREE.CircleGeometry(0.4, 64);
   const textureLoader = new THREE.TextureLoader();
-  const texture = textureLoader.load('https://i.imgur.com/Oz4Fvvv.png'); // Diana
+  const texture = textureLoader.load('./img/target.png'); // Diana
   const material = new THREE.MeshStandardMaterial({ map: texture, side: THREE.DoubleSide });
   const target = new THREE.Mesh(geometry, material);
   target.position.set((Math.random() - 0.5) * 4, 1 + Math.random() * 2, -4);
   target.rotation.y = Math.PI;
   target.userData = {
-    spawnTime: clock.elapsedTime
+    spawnTime: clock.elapsedTime,
+    direction: Math.random() > 0.5 ? 1 : -1,
+    speed: 0.5 + Math.random() * 0.5
   };
   scene.add(target);
   targets.push(target);
@@ -177,6 +184,7 @@ function onSelectStart() {
   const position = new THREE.Vector3().setFromMatrixPosition(controller.matrixWorld);
 
   arrow.position.copy(position);
+  arrow.lookAt(position.clone().add(arrow.userData.velocity));
   arrow.userData.velocity = direction.multiplyScalar(3);
 
   if (soundBuffer) {
@@ -208,6 +216,13 @@ function animate() {
 }
 
 function render() {
+  if (scene && scene.background) {
+    const t = clock.getElapsedTime();
+    if (scene.getObjectByName('floor')) {
+      const floorMat = scene.getObjectByName('floor').material;
+      if (floorMat.map) floorMat.map.offset.set(t * 0.05, t * 0.02);
+    }
+  }
   const delta = clock.getDelta();
   if (gameOver) return;
   gameTime -= delta;
@@ -246,6 +261,8 @@ function render() {
   });
 
   targets.forEach((target) => {
+    // Movimiento horizontal tipo vaivén
+    target.position.x += Math.sin(clock.elapsedTime * target.userData.speed) * 0.01 * target.userData.direction;
     if (clock.elapsedTime - target.userData.spawnTime > 10) {
       gameOver = true;
       updateText(vrGameOverMesh, '¡Has perdido!');
