@@ -3,6 +3,7 @@ import * as THREE from "three";
 import { VRButton } from "three/addons/webxr/VRButton.js";
 import { FontLoader } from "three/addons/loaders/FontLoader.js";
 import { TextGeometry } from "three/addons/geometries/TextGeometry.js";
+import { XRControllerModelFactory } from "three/addons/webxr/XRControllerModelFactory.js";
 
 let camera, scene, renderer, controller;
 const arrows = [], targets = [], explosions = [];
@@ -58,11 +59,14 @@ function init() {
   floor.name = 'floor';
   scene.add(floor);
 
-  // Árboles eliminados para dejar vista despejada a los blancos
-
   controller = renderer.xr.getController(0);
   controller.addEventListener("selectstart", onSelectStart);
   scene.add(controller);
+
+  const controllerModelFactory = new XRControllerModelFactory();
+  const controllerGrip = renderer.xr.getControllerGrip(0);
+  controllerGrip.add(controllerModelFactory.createControllerModel(controllerGrip));
+  scene.add(controllerGrip);
 
   audioLoader.load('Disparo.mp3', buffer => { soundBuffer = buffer; });
   audioLoader.load('Luz de Feria.mp3', buffer => {
@@ -127,7 +131,7 @@ function updateHUD() {
 function spawnTarget() {
   const geometry = new THREE.CircleGeometry(0.4, 64);
   const textureLoader = new THREE.TextureLoader();
-  const texture = textureLoader.load('./img/target.png'); // Diana
+  const texture = textureLoader.load('./img/target.png');
   const material = new THREE.MeshStandardMaterial({ map: texture, side: THREE.DoubleSide });
   const target = new THREE.Mesh(geometry, material);
   target.position.set((Math.random() - 0.5) * 4, 1 + Math.random() * 2, -4);
@@ -158,7 +162,6 @@ function createArrow() {
   tip.position.y = 0.5;
   arrowGroup.add(tip);
 
-  // Plumas traseras
   const featherGeo = new THREE.PlaneGeometry(0.1, 0.05);
   const featherMat = new THREE.MeshStandardMaterial({ color: 0xff0000, side: THREE.DoubleSide });
   for (let i = 0; i < 3; i++) {
@@ -173,12 +176,10 @@ function createArrow() {
 
 function onSelectStart() {
   if (gameOver) {
-    const intersects = controller.intersectObject ? controller.intersectObject(restartBtnMesh) : [];
     if (restartBtnMesh.visible) restartGame();
     return;
   }
   const arrow = createArrow();
-
   const tempMatrix = new THREE.Matrix4().extractRotation(controller.matrixWorld);
   const direction = new THREE.Vector3(0, 0, -1).applyMatrix4(tempMatrix);
   const position = new THREE.Vector3().setFromMatrixPosition(controller.matrixWorld);
@@ -216,71 +217,68 @@ function animate() {
 }
 
 function render() {
-  if (scene && scene.background) {
-    const t = clock.getElapsedTime();
-    if (scene.getObjectByName('floor')) {
-      const floorMat = scene.getObjectByName('floor').material;
-      if (floorMat.map) floorMat.map.offset.set(t * 0.05, t * 0.02);
-    }
-  }
+  const t = clock.getElapsedTime();
   const delta = clock.getDelta();
-  if (gameOver) return;
-  gameTime -= delta;
-  updateHUD();
+  const floor = scene.getObjectByName('floor');
+  if (floor && floor.material.map) floor.material.map.offset.set(t * 0.05, t * 0.02);
 
-  if (gameTime <= 0) {
-    gameTime = 60;
-    score = 0;
-    targets.forEach(t => scene.remove(t));
-    targets.length = 0;
-  }
+  if (!gameOver) {
+    gameTime -= delta;
+    updateHUD();
 
-  if (targets.length < maxTargets && clock.elapsedTime - lastSpawn > spawnInterval) {
-    spawnTarget();
-    lastSpawn = clock.elapsedTime;
-    spawnInterval = Math.max(0.8, spawnInterval * 0.98);
-  }
-
-  arrows.forEach((arrow, i) => {
-    arrow.position.addScaledVector(arrow.userData.velocity, delta);
-    if (arrow.position.length() > 50) {
-      scene.remove(arrow);
-      arrows.splice(i, 1);
+    if (gameTime <= 0) {
+      gameTime = 60;
+      score = 0;
+      targets.forEach(t => scene.remove(t));
+      targets.length = 0;
     }
-    targets.forEach((target, j) => {
-      const dist = arrow.position.distanceTo(target.position);
-      if (dist < 0.5) {
-        createExplosion(target.position);
+
+    if (targets.length < maxTargets && clock.elapsedTime - lastSpawn > spawnInterval) {
+      spawnTarget();
+      lastSpawn = clock.elapsedTime;
+      spawnInterval = Math.max(0.8, spawnInterval * 0.98);
+    }
+
+    arrows.forEach((arrow, i) => {
+      arrow.position.addScaledVector(arrow.userData.velocity, delta);
+      if (arrow.position.length() > 50) {
         scene.remove(arrow);
         arrows.splice(i, 1);
-        scene.remove(target);
-        targets.splice(j, 1);
-        score++;
+      }
+      targets.forEach((target, j) => {
+        const dist = arrow.position.distanceTo(target.position);
+        if (dist < 0.5) {
+          createExplosion(target.position);
+          scene.remove(arrow);
+          arrows.splice(i, 1);
+          scene.remove(target);
+          targets.splice(j, 1);
+          score++;
+        }
+      });
+    });
+
+    targets.forEach((target) => {
+      target.position.x += Math.sin(clock.elapsedTime * target.userData.speed) * 0.01 * target.userData.direction;
+      if (clock.elapsedTime - target.userData.spawnTime > 10) {
+        gameOver = true;
+        updateText(vrGameOverMesh, '¡Has perdido!');
+        restartBtnMesh.visible = true;
       }
     });
-  });
 
-  targets.forEach((target) => {
-    // Movimiento horizontal tipo vaivén
-    target.position.x += Math.sin(clock.elapsedTime * target.userData.speed) * 0.01 * target.userData.direction;
-    if (clock.elapsedTime - target.userData.spawnTime > 10) {
-      gameOver = true;
-      updateText(vrGameOverMesh, '¡Has perdido!');
-      restartBtnMesh.visible = true;
-    }
-  });
-
-  explosions.forEach((e, idx) => {
-    e.group.children.forEach(p => {
-      p.position.addScaledVector(p.userData.velocity, delta);
-      p.userData.velocity.multiplyScalar(0.95);
+    explosions.forEach((e, idx) => {
+      e.group.children.forEach(p => {
+        p.position.addScaledVector(p.userData.velocity, delta);
+        p.userData.velocity.multiplyScalar(0.95);
+      });
+      e.time += delta;
+      if (e.time > 1.5) {
+        scene.remove(e.group);
+        explosions.splice(idx, 1);
+      }
     });
-    e.time += delta;
-    if (e.time > 1.5) {
-      scene.remove(e.group);
-      explosions.splice(idx, 1);
-    }
-  });
+  }
 
   renderer.render(scene, camera);
 }
