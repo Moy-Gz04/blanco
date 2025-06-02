@@ -185,8 +185,9 @@ function onSelectStart() {
   const position = new THREE.Vector3().setFromMatrixPosition(controller.matrixWorld);
 
   arrow.position.copy(position);
-  arrow.userData.velocity = direction.multiplyScalar(3);
-  arrow.lookAt(position.clone().add(arrow.userData.velocity));
+  const velocity = direction.clone().multiplyScalar(3);
+  arrow.userData.velocity = velocity;
+  arrow.lookAt(position.clone().add(velocity));
 
   if (soundBuffer) {
     const sound = new THREE.PositionalAudio(listener);
