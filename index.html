@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <title>Juego VR con Sonido y HUD VR</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    body {
+      margin: 0;
+      overflow: hidden;
+      background: #222;
+      color: white;
+      font-family: sans-serif;
+    }
+
+    #info, #score, #toggleMusic, #timer {
+      position: absolute;
+      left: 10px;
+      z-index: 1;
+      background: rgba(0, 0, 0, 0.6);
+      padding: 10px;
+      border-radius: 5px;
+      user-select: none;
+    }
+
+    #info { top: 10px; }
+    #score { top: 50px; font-size: 1.2em; }
+    #toggleMusic { top: 90px; cursor: pointer; }
+    #timer { top: 130px; font-size: 1.2em; }
+
+    canvas { display: block; }
+
+    #gameOverUI {
+      position: absolute;
+      top: 40%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: rgba(0,0,0,0.8);
+      padding: 30px;
+      border-radius: 10px;
+      text-align: center;
+      display: none;
+      z-index: 5;
+      color: white;
+      font-size: 1.5em;
+    }
+
+    #gameOverUI button {
+      margin-top: 20px;
+      padding: 10px 20px;
+      font-size: 1em;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://unpkg.com/three@0.157.0/build/three.module.js",
+        "three/addons/": "https://unpkg.com/three@0.157.0/examples/jsm/"
+      }
+    }
+  </script>
+
+  <script type="module" src="./main.js"></script>
+</body>
+</html>
