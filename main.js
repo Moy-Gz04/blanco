@@ -53,23 +53,7 @@ function init() {
   floor.rotation.x = -Math.PI / 2;
   scene.add(floor);
 
-  // Agregar árboles alrededor
-  const treeGeometry = new THREE.CylinderGeometry(0.05, 0.05, 1.5);
-  const leafGeometry = new THREE.ConeGeometry(0.3, 1, 8);
-  const trunkMaterial = new THREE.MeshStandardMaterial({ color: 0x8B4513 });
-  const leafMaterial = new THREE.MeshStandardMaterial({ color: 0x228B22 });
-
-  for (let i = 0; i < 10; i++) {
-    const trunk = new THREE.Mesh(treeGeometry, trunkMaterial);
-    const leaves = new THREE.Mesh(leafGeometry, leafMaterial);
-    const tree = new THREE.Group();
-    trunk.position.y = 0.75;
-    leaves.position.y = 1.5;
-    tree.add(trunk);
-    tree.add(leaves);
-    tree.position.set((Math.random() - 0.5) * 10, 0, (Math.random() - 0.5) * 10);
-    scene.add(tree);
-  }
+  // Árboles eliminados para dejar vista despejada a los blancos
 
   controller = renderer.xr.getController(0);
   controller.addEventListener("selectstart", onSelectStart);
